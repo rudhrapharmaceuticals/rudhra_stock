@@ -18,7 +18,7 @@ function getSystemQty(x){if(vyaparStock){let k=Object.keys(vyaparStock).find(k=>
 function render(){ $("meds").textContent=meds().length;$("batches").textContent=D.length;$("loaded").textContent=D.length;if($("syncTime"))$("syncTime").value=vyaparSync||"Not synced";if($("syncCount"))$("syncCount").value=vyaparStock?Object.keys(vyaparStock).length:"0";$("rackTotal").textContent=Object.values(racks).reduce((a,v)=>a+(+v||0),0).toLocaleString("en-IN");$("damageTotal").textContent=damages.reduce((a,x)=>a+(+x.q||0),0).toLocaleString("en-IN");$("sampleTotal").textContent=samples.reduce((a,x)=>a+(+x.q||0),0).toLocaleString("en-IN");$("systemTotal").textContent=D.reduce((a,x)=>a+getSystemQty(x),0).toLocaleString("en-IN");$("sampleRows").innerHTML=samples.slice().reverse().map((a,i)=>'<tr><td>'+esc(a.d)+'</td><td>'+esc(a.m)+' / '+esc(a.b)+'</td><td>'+esc(a.who)+'</td><td>'+esc(a.org||"-")+'</td><td>'+a.q+'</td><td>'+esc(a.mrp||"-")+'</td><td>'+esc(a.e||"-")+'</td><td><button class="delete-btn delSample" data-i="'+(samples.length-1-i)+'">Delete</button></td></tr>').join("")||'<tr><td colspan="4">No sample entries.</td></tr>';$("damageRows").innerHTML=damages.slice().reverse().map((a,i)=>'<tr><td>'+esc(a.d)+'</td><td>'+esc(a.m)+' / '+esc(a.b)+'</td><td>'+a.q+'</td><td>'+esc(a.mrp||"-")+'</td><td>'+esc(a.e||"-")+'</td><td>'+esc(a.note||"-")+'</td><td><button class="delete-btn delDamage" data-i="'+(damages.length-1-i)+'">Delete</button></td></tr>').join("")||'<tr><td colspan="6">No damaged entries.</td></tr>';$("rackRows").innerHTML=D.map(x=>{let r=racks[key(x)],e=expected(x),df=r===undefined?"":r-e,st=r===undefined?"Pending":df===0?"Matched":"Mismatch";return'<tr><td>'+esc(x.n)+'</td><td>'+esc(x.b)+'</td><td>'+esc(x.e)+'</td><td>'+e+'</td><td>'+(r??"-")+'</td><td>'+(r===undefined?"":df)+'</td><td>'+st+'</td></tr>'}).join("");let h=[];samples.forEach(a=>h.push([a.d,"Sample",a.m,a.b,a.q,a.who]));damages.forEach(a=>h.push([a.d,"Damaged",a.m,a.b,a.q,a.note]));Object.keys(racks).forEach(k=>{let x=D.find(y=>key(y)===k);if(x)h.push(["","Rack Qty",x.n,x.b,racks[k],"Physical count"])});$("historyRows").innerHTML=h.reverse().map(a=>'<tr>'+a.map(v=>'<td>'+esc(v)+'</td>').join("")+'</tr>').join("")||'<tr><td colspan="6">No history.</td></tr>'}
 
 function normalizeName(v){return String(v??"").replace(/\s+/g," ").trim().toUpperCase()}
-async function batchKey(n,b,e){return normalizeName(n)+"||"+String(b??"").trim().toUpperCase()+"||"+String(e??"").trim().toUpperCase()}
+function batchKey(n,b,e){return normalizeName(n)+"||"+String(b??"").trim().toUpperCase()+"||"+String(e??"").trim().toUpperCase()}
 function getSystemQty(x){if(vyaparStock){const k=batchKey(x.n,x.b,x.e);if(Object.prototype.hasOwnProperty.call(vyaparStock,k))return Math.max(0,+vyaparStock[k]||0);return 0}return Math.max(0,+x.s||0)}
 async function syncVyapar(){
   const f=$("vyaparFile").files[0];
@@ -49,8 +49,8 @@ async function syncVyapar(){
     localStorage.setItem("rudhra_vyapar_sync",vyaparSync);
     const total=Object.values(vyaparStock).reduce((a,v)=>a+(+v||0),0);
     $("syncResult").innerHTML="<b>Batch sync successful.</b> "+count+" batch quantities imported from "+esc(f.name)+". System Qty Total: <b>"+total.toLocaleString("en-IN")+"</b>.";
-    render();await writeSyncFile();
-  }catch(e){$("syncResult").textContent="Sync failed: "+e.message}
+    render();const payload=buildPublishPayload();const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(payload)],{type:"application/json"}));a.download="rudhra-publish.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);await writeSyncFile();
+  }catch(e){$("syncResult").innerHTML="<b style=\"color:#d62828\">Sync failed.</b> "+esc(e.message)}
 }
 
 let syncFolderHandle=null;
