@@ -2,6 +2,9 @@
 const $=id=>document.getElementById(id);
 const button=$("publishPublic"),tokenInput=$("publishToken"),status=$("publishResult");
 if(!button||!tokenInput||!status)return;
+// Remember the token on this device so publishing does not require pasting it every time.
+try{tokenInput.value=localStorage.getItem("rudhra_github_publish_token")||"";}catch(e){}
+tokenInput.addEventListener("input",()=>{try{if(tokenInput.value.trim())localStorage.setItem("rudhra_github_publish_token",tokenInput.value.trim());else localStorage.removeItem("rudhra_github_publish_token");}catch(e){}});
 button.addEventListener("click",async()=>{
  const token=tokenInput.value.trim();
  if(!token){status.textContent="Paste your GitHub publishing token first.";tokenInput.focus();return}
@@ -23,7 +26,6 @@ button.addEventListener("click",async()=>{
   const result=await put.json().catch(()=>({}));
   if(!put.ok)throw new Error(result.message||("Upload failed ("+put.status+"). Check token permissions."));
   status.textContent="Stock data uploaded. GitHub is updating the Public Dashboard now; wait about 1–2 minutes, then refresh the public page.";
-  tokenInput.value="";
  }catch(e){status.textContent="Publish failed: "+(e&&e.message?e.message:"Unexpected error")+". Your local dashboard data has not been deleted."}
  finally{button.disabled=false;button.textContent="Publish Stock to Public Dashboard"}
 });
